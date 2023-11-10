@@ -36,7 +36,7 @@ type DeadlineResponse struct {
 
 func main() {
 	claimIds := []int{
-		0000000000,
+		000000000,
 	}
 
 	client := &http.Client{}
@@ -82,7 +82,7 @@ func main() {
 
 		// If there is no mandatory action expired, the claim is already consistent
 		if !hasMandatoryActionExpired {
-			msg := fmt.Sprintf("%d -> CONSISTENT", id)
+			msg := fmt.Sprintf("%d -> CONSISTENTE", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -114,13 +114,13 @@ func main() {
 
 		// Check if the CX case is open
 		if len(cxResponse.Results) == 0 {
-			msg := fmt.Sprintf("%d -> ZERO CX CASES", id)
+			msg := fmt.Sprintf("%d -> SIN CASO EN CX", id)
 			fmt.Println(msg)
 			continue
 		}
 
 		if len(cxResponse.Results) > 1 {
-			msg := fmt.Sprintf("%d -> MORE THAN ONE CX CASE", id)
+			msg := fmt.Sprintf("%d -> MAS DE UN CASO EN CX", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -128,7 +128,7 @@ func main() {
 		cxStatus := cxResponse.Results[0].Status
 
 		if cxStatus == "OPENED" {
-			msg := fmt.Sprintf("%d -> CONSISTENT", id)
+			msg := fmt.Sprintf("%d -> CONSISTENTE", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -203,10 +203,10 @@ func main() {
 		}
 
 		if deadlineResponses[0].AppliedRule == "none" {
-			msg := fmt.Sprintf("%d -> REPORT IN CORE-CX", id)
+			msg := fmt.Sprintf("%d -> SE SOLICITA REAPERTURA EN CX", id)
 			fmt.Println(msg)
 		} else {
-			msg := fmt.Sprintf("%d -> CONSISTENT", id)
+			msg := fmt.Sprintf("%d -> CONSISTENTE", id)
 			fmt.Println(msg)
 		}
 	}
