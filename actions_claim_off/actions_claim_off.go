@@ -36,13 +36,7 @@ type DeadlineResponse struct {
 
 func main() {
 	claimIds := []int{
-		5225420769,
-		5225127934,
-		5225716927,
-		5227261736,
-		5227155482,
-		5225956621,
-		5225921429,
+		0000000000,
 	}
 
 	client := &http.Client{}
@@ -52,7 +46,7 @@ func main() {
 		url := fmt.Sprintf("https://internal-api.mercadolibre.com/v1/claims/%d", id)
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT CREATE GET CLAIM REQUEST", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT CREATE GET REQUEST", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -60,7 +54,7 @@ func main() {
 		req.Header.Add("X-Caller-Scopes", "admin")
 		resp, err := client.Do(req)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT EXECUTE GET CLAIM REQUEST", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT EXECUTE GET REQUEST", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -68,7 +62,7 @@ func main() {
 		var claimResponse ClaimResponse
 		err = json.NewDecoder(resp.Body).Decode(&claimResponse)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT UNMARSHALL CLAIM RESPONSE", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT UNMARSHALL RESPONSE", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -88,7 +82,7 @@ func main() {
 
 		// If there is no mandatory action expired, the claim is already consistent
 		if !hasMandatoryActionExpired {
-			msg := fmt.Sprintf("CLAIM %d -> CONSISTENT", id)
+			msg := fmt.Sprintf("%d -> CONSISTENT", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -97,7 +91,7 @@ func main() {
 		url = fmt.Sprintf("https://internal-api.mercadolibre.com/cx/cases/search/v2?claim_id=%d", id)
 		req, err = http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT CREATE GET CX REQUEST", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT CREATE GET CX REQUEST", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -105,7 +99,7 @@ func main() {
 		req.Header.Add("X-Admin-Id", "admin")
 		resp, err = client.Do(req)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT EXECUTE GET CX REQUEST", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT EXECUTE GET CX REQUEST", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -113,26 +107,35 @@ func main() {
 		var cxResponse CXResponse
 		err = json.NewDecoder(resp.Body).Decode(&cxResponse)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT UNMARSHALL CX RESPONSE", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT UNMARSHALL CX RESPONSE", id)
 			fmt.Println(msg)
 			continue
 		}
 
 		// Check if the CX case is open
 		if len(cxResponse.Results) == 0 {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: ZERO CX CASES", id)
+			msg := fmt.Sprintf("%d -> ZERO CX CASES", id)
 			fmt.Println(msg)
 			continue
 		}
 
 		if len(cxResponse.Results) > 1 {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: MORE THAN ONE CX CASE", id)
+			msg := fmt.Sprintf("%d -> MORE THAN ONE CX CASE", id)
 			fmt.Println(msg)
 			continue
 		}
 
-		if cxResponse.Results[0].Status == "OPENED" {
-			msg := fmt.Sprintf("CLAIM %d -> CONSISTENT", id)
+		cxStatus := cxResponse.Results[0].Status
+
+		if cxStatus == "OPENED" {
+			msg := fmt.Sprintf("%d -> CONSISTENT", id)
+			fmt.Println(msg)
+			continue
+		}
+
+		// If the CX status is not OPENED or CLOSED, there is no actual action to take
+		if cxStatus != "CLOSED" {
+			msg := fmt.Sprintf("%d -> CX STATUS: %s", id, cxStatus)
 			fmt.Println(msg)
 			continue
 		}
@@ -143,7 +146,7 @@ func main() {
 		url = fmt.Sprintf("https://internal-api.mercadolibre.com/v1/claims/%d/state", id)
 		req, err = http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT CREATE GET CLAIM STATE REQUEST", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT CREATE GET STATE REQUEST", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -151,7 +154,7 @@ func main() {
 		req.Header.Add("X-Caller-Scopes", "admin")
 		resp, err = client.Do(req)
 		if err != nil {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: CANNOT EXECUTE GET CLAIM STATE REQUEST", id)
+			msg := fmt.Sprintf("%d -> ERROR: CANNOT EXECUTE GET STATE REQUEST", id)
 			fmt.Println(msg)
 			continue
 		}
@@ -162,7 +165,7 @@ func main() {
 		} else if resp.StatusCode == http.StatusNotFound {
 			isClaimV1 = true
 		} else {
-			msg := fmt.Sprintf("CLAIM %d -> ERROR: HTTP %d IN CLAIM STATE REQUEST", id, resp.StatusCode)
+			msg := fmt.Sprintf("%d -> ERROR: HTTP %d IN STATE REQUEST", id, resp.StatusCode)
 			fmt.Println(msg)
 			continue
 		}
@@ -200,10 +203,10 @@ func main() {
 		}
 
 		if deadlineResponses[0].AppliedRule == "none" {
-			msg := fmt.Sprintf("CLAIM %d -> REPORT IN THE CORE-CX CHANNEL", id)
+			msg := fmt.Sprintf("%d -> REPORT IN CORE-CX", id)
 			fmt.Println(msg)
 		} else {
-			msg := fmt.Sprintf("CLAIM %d -> CONSISTENT", id)
+			msg := fmt.Sprintf("%d -> CONSISTENT", id)
 			fmt.Println(msg)
 		}
 	}
